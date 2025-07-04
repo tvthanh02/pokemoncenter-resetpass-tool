@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>DOB Fill Tool</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; background: #f7f7f7; }
+    h1 { color: #2d7be5; }
+    .input-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 4px; }
+    input[type="text"], textarea { width: 100%; padding: 8px; }
+    textarea { height: 60px; }
+    #log { background: #222; color: #eee; padding: 12px; height: 300px; overflow-y: auto; font-family: monospace; border-radius: 6px; }
+    button { margin-right: 8px; padding: 8px 16px; }
+    #status { margin: 12px 0; }
+    #progress { margin-top: 8px; }
+    
+    .year-ranges { 
+      background: #fff; 
+      padding: 16px; 
+      border-radius: 8px; 
+      margin-bottom: 16px;
+      border: 1px solid #ddd;
+    }
+    .year-ranges h3 { margin-top: 0; color: #333; }
+    .range-group { 
+      display: inline-block; 
+      margin: 8px 16px 8px 0; 
+      padding: 8px 12px; 
+      background: #f8f9fa; 
+      border-radius: 4px;
+      border: 1px solid #e9ecef;
+    }
+    .range-group label { 
+      display: inline; 
+      margin-left: 4px; 
+      font-weight: normal;
+    }
+    .range-group input[type="checkbox"] { margin-right: 4px; }
+    .range-stats { 
+      font-size: 12px; 
+      color: #666; 
+      margin-left: 8px;
+    }
+    .select-all-group {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee;
+    }
+    .total-stats {
+      background: #e3f2fd;
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-top: 8px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>DOB Fill Tool</h1>
+  
+  <div class="year-ranges">
+    <h3>🎯 Chọn khoảng năm sinh:</h3>
+    
+    <div class="select-all-group">
+      <label><input type="checkbox" id="selectAll"> <strong>Chọn tất cả</strong></label>
+    </div>
+    
+    <div class="range-group">
+      <input type="checkbox" id="range1900-1920" value="1900-1920">
+      <label for="range1900-1920">1900-1920</label>
+      <span class="range-stats">(21 năm × 12 tháng × 31 ngày = 7,812 tổ hợp)</span>
+    </div>
+    
+    <div class="range-group">
+      <input type="checkbox" id="range1921-1940" value="1921-1940">
+      <label for="range1921-1940">1921-1940</label>
+      <span class="range-stats">(20 năm × 12 tháng × 31 ngày = 7,440 tổ hợp)</span>
+    </div>
+    
+    <div class="range-group">
+      <input type="checkbox" id="range1941-1960" value="1941-1960">
+      <label for="range1941-1960">1941-1960</label>
+      <span class="range-stats">(20 năm × 12 tháng × 31 ngày = 7,440 tổ hợp)</span>
+    </div>
+    
+    <div class="range-group">
+      <input type="checkbox" id="range1961-1980" value="1961-1980">
+      <label for="range1961-1980">1961-1980</label>
+      <span class="range-stats">(20 năm × 12 tháng × 31 ngày = 7,440 tổ hợp)</span>
+    </div>
+    
+    <div class="range-group">
+      <input type="checkbox" id="range1981-2000" value="1981-2000" checked>
+      <label for="range1981-2000">1981-2000 ⭐ (Pokemon Era)</label>
+      <span class="range-stats">(20 năm × 12 tháng × 31 ngày = 7,440 tổ hợp)</span>
+    </div>
+    
+    <div class="range-group">
+      <input type="checkbox" id="range2001-2020" value="2001-2020" checked>
+      <label for="range2001-2020">2001-2020 ⭐ (Modern Era)</label>
+      <span class="range-stats">(20 năm × 12 tháng × 31 ngày = 7,440 tổ hợp)</span>
+    </div>
+    
+    <div class="range-group">
+      <input type="checkbox" id="range2021-2025" value="2021-2025">
+      <label for="range2021-2025">2021-2025</label>
+      <span class="range-stats">(5 năm × 12 tháng × 31 ngày = 1,860 tổ hợp)</span>
+    </div>
+    
+    <div class="total-stats" id="totalStats">
+      📊 Tổng: 0 tổ hợp được chọn
+    </div>
+  </div>
+  
+  <div class="input-group">
+    <label>Email (mỗi dòng 1 email):</label>
+    <textarea id="emailInput" placeholder="Nhập email hoặc để trống để chọn file..."></textarea>
+    <button id="chooseFileBtn">Chọn file email</button>
+    <span id="fileName"></span>
+  </div>
+  
+  <div class="input-group">
+    <button id="startBtn">🚀 Bắt đầu Brute Force</button>
+    <button id="stopBtn" disabled>⏹️ Dừng</button>
+    <button id="clearLogBtn">🗑️ Xoá log</button>
+    <button id="saveLogBtn">💾 Lưu log</button>
+  </div>
+  
+  <div id="status"></div>
+  <div id="progress"></div>
+  <div id="log"></div>
+  
+  <script src="renderer.js"></script>
+</body>
+</html> 
