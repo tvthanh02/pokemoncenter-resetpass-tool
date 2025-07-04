@@ -1,11 +1,13 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs-extra');
-const bruteForce = require('./modules/bruteForceBrowser');
 const { generateDOBList } = require('./modules/dobList');
+const { fork } = require('child_process');
 
 let mainWindow;
 let isRunning = false;
+let stoppedEmails = new Set();
+let runningWorkers = {};
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -50,36 +52,73 @@ ipcMain.handle('read-email-file', async (event, filePath) => {
   return await fs.readFile(filePath, 'utf8');
 });
 
-ipcMain.handle('start-brute-force', async (event, emails, selectedRanges) => {
+ipcMain.handle('stop-single-email', (event, email) => {
+  stoppedEmails.add(email);
+  if (runningWorkers[email]) {
+    runningWorkers[email].send({ type: 'stop' });
+  }
+  return true;
+});
+
+// Hàm quản lý pool process
+async function runProcessPool(emails, dobList, concurrency) {
+  let completed = 0;
+  const total = emails.length;
+  let queue = [...emails];
+  let active = 0;
+  return new Promise((resolve) => {
+    function launchNext() {
+      while (active < concurrency && queue.length > 0) {
+        const email = queue.shift();
+        if (stoppedEmails.has(email)) continue;
+        const worker = fork(path.join(__dirname, 'bruteWorker.js'));
+        runningWorkers[email] = worker;
+        active++;
+        mainWindow.webContents.send('progress-update', {
+          current: completed + 1,
+          total,
+          email
+        });
+        worker.on('message', (msg) => {
+          if (msg.type === 'log') {
+            mainWindow.webContents.send('log-update', `[${email}] ${msg.logLine}\n`);
+          } else if (msg.type === 'done') {
+            // done
+          }
+        });
+        worker.on('exit', () => {
+          active--;
+          completed++;
+          delete runningWorkers[email];
+          if (completed >= total) {
+            isRunning = false;
+            mainWindow.webContents.send('progress-update', { completed: true });
+            resolve();
+          } else {
+            launchNext();
+          }
+        });
+        worker.send({ type: 'start', email, dobList });
+      }
+    }
+    launchNext();
+  });
+}
+
+ipcMain.handle('start-brute-force', async (event, emails, selectedRanges, concurrency) => {
   if (isRunning) return false;
   isRunning = true;
-  
-  // Generate DOB list based on selected ranges
+  stoppedEmails = new Set();
+  runningWorkers = {};
   const dobList = generateDOBList(selectedRanges);
-  
-  for (let i = 0; i < emails.length; i++) {
-    if (!isRunning) break;
-    const email = emails[i];
-    
-    // Gửi progress update
-    mainWindow.webContents.send('progress-update', {
-      current: i + 1,
-      total: emails.length,
-      email: email
-    });
-    
-    // Chạy bruteForce cho email hiện tại với custom DOB list
-    await bruteForce(email, (logLine) => {
-      mainWindow.webContents.send('log-update', logLine);
-    }, () => isRunning, dobList);
-  }
-  
-  isRunning = false;
-  mainWindow.webContents.send('progress-update', { completed: true });
+  await runProcessPool(emails, dobList, concurrency || 1);
   return true;
 });
 
 ipcMain.handle('stop-brute-force', () => {
   isRunning = false;
+  Object.values(runningWorkers).forEach(worker => worker.send({ type: 'stop' }));
   return true;
-}); 
+});
+
+ipcMain.handle('get-cpu-count', () => require('os').cpus().length); 

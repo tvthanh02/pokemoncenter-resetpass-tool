@@ -394,9 +394,9 @@ module.exports = async function bruteForceBrowser(email, log, isRunning, dobList
         sessionErrors = 0; // Reset session errors
         
         // Delay ngau nhien ngan hon
-        const delay = sleep.random(8000, 20000); // Giảm từ 15-45s xuống 8-20s
-        log(`  ⏳ Waiting ${Math.round(delay/1000)}s...`);
-        await delay;
+        const ms = Math.floor(Math.random() * (20000 - 8000 + 1)) + 8000;
+        log(`  ⏳ Waiting ${Math.round(ms/1000)}s...\n`);
+        await sleep.random(ms, ms);
         
       } catch (err) {
         consecutiveErrors++;

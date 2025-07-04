@@ -99,12 +99,43 @@ onLogUpdate((event, logLine) => {
   logDiv.scrollTop = logDiv.scrollHeight;
 });
 
+const runningEmailsGroup = document.getElementById('runningEmailsGroup');
+const runningEmailsDiv = document.getElementById('runningEmails');
+let runningEmails = [];
+
+function renderRunningEmails() {
+  if (runningEmails.length === 0) {
+    runningEmailsGroup.style.display = 'none';
+    runningEmailsDiv.innerHTML = '';
+    return;
+  }
+  runningEmailsGroup.style.display = '';
+  runningEmailsDiv.innerHTML = '';
+  runningEmails.forEach(email => {
+    const emailDiv = document.createElement('div');
+    emailDiv.style.marginBottom = '4px';
+    emailDiv.innerHTML = `<span>${email}</span> <button data-email="${email}" class="stop-email-btn">Dừng thử email này</button>`;
+    runningEmailsDiv.appendChild(emailDiv);
+  });
+  // Gán sự kiện cho nút dừng
+  Array.from(document.getElementsByClassName('stop-email-btn')).forEach(btn => {
+    btn.onclick = () => {
+      const email = btn.getAttribute('data-email');
+      window.electronAPI.stopSingleEmail && window.electronAPI.stopSingleEmail(email);
+      btn.disabled = true;
+      btn.textContent = 'Đã dừng';
+    };
+  });
+}
+
 onProgressUpdate((event, data) => {
   if (data.completed) {
     statusDiv.textContent = 'Hoàn thành!';
     startBtn.disabled = false;
     stopBtn.disabled = true;
     isRunning = false;
+    runningEmails = [];
+    renderRunningEmails();
   } else {
     statusDiv.textContent = `Đang xử lý: ${data.email} (${data.current}/${data.total})`;
     progressDiv.textContent = `Đã xử lý ${data.current}/${data.total} email.`;
@@ -139,6 +170,16 @@ stopBtn.onclick = async () => {
   startBtn.disabled = false;
   statusDiv.textContent = 'Đã dừng.';
 };
+
+const concurrencyInput = document.getElementById('concurrencyInput');
+const cpuInfo = document.getElementById('cpuInfo');
+
+window.electronAPI.getCpuCount && window.electronAPI.getCpuCount().then(cpuCount => {
+  if (cpuCount) {
+    concurrencyInput.value = cpuCount;
+    cpuInfo.textContent = `(CPU: ${cpuCount} core)`;
+  }
+});
 
 startBtn.onclick = async () => {
   // Get selected year ranges
@@ -178,6 +219,8 @@ startBtn.onclick = async () => {
   statusDiv.textContent = 'Đang bắt đầu...';
   progressDiv.textContent = '';
   
-  // Pass selected ranges to main process
-  await startBruteForce(emails, selectedRanges);
+  runningEmails = [...emails];
+  renderRunningEmails();
+  const concurrency = parseInt(concurrencyInput.value) || 1;
+  await startBruteForce(emails, selectedRanges, concurrency);
 }; 
