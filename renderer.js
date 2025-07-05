@@ -1,11 +1,11 @@
-const { 
-  selectEmailFile, 
-  writeLog, 
-  readEmailFile, 
-  startBruteForce, 
-  stopBruteForce, 
-  onLogUpdate, 
-  onProgressUpdate 
+const {
+  selectEmailFile,
+  writeLog,
+  readEmailFile,
+  startBruteForce,
+  stopBruteForce,
+  onLogUpdate,
+  onProgressUpdate
 } = window.electronAPI;
 
 let isRunning = false;
@@ -52,19 +52,19 @@ const yearRanges = [
 function updateTotalStats() {
   let totalCombinations = 0;
   let selectedRanges = [];
-  
+
   yearRangeCheckboxes.forEach((checkbox, index) => {
     if (checkbox.checked) {
       totalCombinations += yearRanges[index].combinations;
       selectedRanges.push(yearRanges[index]);
     }
   });
-  
+
   totalStatsDiv.textContent = `📊 Tổng: ${totalCombinations.toLocaleString()} tổ hợp được chọn`;
-  
+
   // Update button state
   startBtn.disabled = totalCombinations === 0;
-  
+
   return { totalCombinations, selectedRanges };
 }
 
@@ -84,7 +84,7 @@ yearRangeCheckboxes.forEach(checkbox => {
     const someChecked = yearRangeCheckboxes.some(cb => cb.checked);
     selectAllCheckbox.checked = allChecked;
     selectAllCheckbox.indeterminate = someChecked && !allChecked;
-    
+
     updateTotalStats();
   });
 });
@@ -136,9 +136,15 @@ onProgressUpdate((event, data) => {
     isRunning = false;
     runningEmails = [];
     renderRunningEmails();
+    if (typeof data.rate === 'number') {
+      document.getElementById('speedInfo').textContent = `Tốc độ trung bình: ${data.rate} requests/phút`;
+    }
   } else {
     statusDiv.textContent = `Đang xử lý: ${data.email} (${data.current}/${data.total})`;
     progressDiv.textContent = `Đã xử lý ${data.current}/${data.total} email.`;
+    if (typeof data.rate === 'number') {
+      document.getElementById('speedInfo').textContent = `Tốc độ hiện tại: ${data.rate} requests/phút`;
+    }
   }
 });
 
@@ -174,22 +180,25 @@ stopBtn.onclick = async () => {
 const concurrencyInput = document.getElementById('concurrencyInput');
 const cpuInfo = document.getElementById('cpuInfo');
 
-window.electronAPI.getCpuCount && window.electronAPI.getCpuCount().then(cpuCount => {
-  if (cpuCount) {
-    concurrencyInput.value = cpuCount;
-    cpuInfo.textContent = `(CPU: ${cpuCount} core)`;
+window.electronAPI.getCpuCount && window.electronAPI.getCpuCount().then(cpuInfoObj => {
+  if (cpuInfoObj && typeof cpuInfoObj === 'object') {
+    concurrencyInput.value = cpuInfoObj.recommendedConcurrency;
+    cpuInfo.textContent = `(CPU: ${cpuInfoObj.cpuCount} core, gợi ý: ${cpuInfoObj.recommendedConcurrency})`;
+  } else if (typeof cpuInfoObj === 'number') {
+    concurrencyInput.value = cpuInfoObj;
+    cpuInfo.textContent = `(CPU: ${cpuInfoObj} core)`;
   }
 });
 
 startBtn.onclick = async () => {
   // Get selected year ranges
   const { totalCombinations, selectedRanges } = updateTotalStats();
-  
+
   if (totalCombinations === 0) {
     statusDiv.textContent = 'Vui lòng chọn ít nhất một khoảng năm!';
     return;
   }
-  
+
   let emails = [];
   if (emailFilePath) {
     const content = await readEmailFile(emailFilePath);
@@ -197,28 +206,28 @@ startBtn.onclick = async () => {
   } else {
     emails = emailInput.value.split(/\r?\n/).map(e => e.trim()).filter(Boolean);
   }
-  
+
   if (emails.length === 0) {
     statusDiv.textContent = 'Vui lòng nhập hoặc chọn file email!';
     return;
   }
-  
+
   // Log selected ranges
-  const rangeInfo = selectedRanges.map(range => 
+  const rangeInfo = selectedRanges.map(range =>
     `${range.start}-${range.end} (${range.combinations.toLocaleString()} tổ hợp)`
   ).join(', ');
-  
+
   logLines.push(`🎯 Selected ranges: ${rangeInfo}`);
   logLines.push(`📊 Total combinations: ${totalCombinations.toLocaleString()}`);
   logLines.push(`📧 Emails to process: ${emails.length}`);
   logDiv.textContent = logLines.join('\n');
-  
+
   isRunning = true;
   startBtn.disabled = true;
   stopBtn.disabled = false;
   statusDiv.textContent = 'Đang bắt đầu...';
   progressDiv.textContent = '';
-  
+
   runningEmails = [...emails];
   renderRunningEmails();
   const concurrency = parseInt(concurrencyInput.value) || 1;

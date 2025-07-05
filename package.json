@@ -1,11 +1,11 @@
 {
-  "name": "dob-fill",
+  "name": "dob-fill-ultra",
   "version": "1.0.0",
-  "description": "DOB Brute Force Tool",
-  "main": "main.js",
+  "description": "DOB Brute Force Tool - Ultra Version",
+  "main": "mainUltra.js",
   "build": {
-    "appId": "com.yourcompany.dobfill",
-    "productName": "DOB Fill Tool",
+    "appId": "com.yourcompany.dobfill.ultra",
+    "productName": "dob-fill_ultra",
     "files": [
       "**/*"
     ],
@@ -18,14 +18,19 @@
       "buildResources": "assets"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "artifactName": "${productName}.${ext}"
     }
   },
   "scripts": {
     "start": "electron .",
+    "start-original": "electron main.js",
+    "start-optimized": "electron mainOptimized.js",
+    "start-ultra": "electron mainUltra.js",
     "dist": "electron-builder",
     "test": "node test-csrf.js",
-    "test-playwright": "node test-playwright.js"
+    "test-playwright": "node test-playwright.js",
+    "test-performance": "node test-performance.js"
   },
   "dependencies": {
     "axios": "^1.6.0",
